@@ -10,10 +10,10 @@ EXPORT_LOCATION='/var/lib/prometheus/node-exporter'
 
 ## Modifying may break it!
 parseKeys = {
-    'Currently failed:': ('fail2ban_failed_current', 'Number of failed connections.'),
-    'Total failed:':('fail2ban_failed_total', 'Number of all time failed connections.'),
+    'Currently failed:': ('fail2ban_failed_current', 'Number of currently failed connections.'),
+    'Total failed:':('fail2ban_failed_total', 'Total number of failed connections.'),
     'Currently banned:':('fail2ban_banned_current', 'Number of currently banned IP addresses.'),
-    'Total banned:':('fail2ban_banned_total', 'Number of all time banned IP addresses.')
+    'Total banned:':('fail2ban_banned_total', 'Total number of banned IP addresses.')
 }
 
 ## Commandline args
