@@ -17,8 +17,8 @@ parseKeys = {
 }
 
 ## Commandline args
-parser = argparse.ArgumentParser(description="Exports fail2ban-client metrics.")
-parser.add_argument('-j', '--jail', help="Jail name to be exported (all jails if omitted)")
+parser = argparse.ArgumentParser(description="Export fail2ban-client metrics for Prometheus Node Exporter.")
+parser.add_argument('-j', '--jail', help="Jail name to be exported (all jails if omitted).")
 parser.add_argument('-f', '--file', help="File to write metrics to.")
 args = parser.parse_args()
 
