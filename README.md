@@ -5,7 +5,7 @@ If ran without any arguments, it will export the metrics for all currently enabl
  
 ### Usage
 ```
-usage: fail2ban-export.py [-h] [-j JAIL] [-f FILE]
+usage: fail2ban-exporter.py [-h] [-j JAIL] [-f FILE]
 
 Export fail2ban-client metrics for Prometheus Node Exporter.
 
