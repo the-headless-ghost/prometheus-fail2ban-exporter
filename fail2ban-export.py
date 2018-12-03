@@ -1,23 +1,56 @@
 #!/usr/bin/env python3
 import re, subprocess, argparse
-from prometheus_client import CollectorRegistry, Counter, write_to_textfile
-from config import *
+from prometheus_client import CollectorRegistry, Counter, Gauge, generate_latest
+
+## Filename
+EXPORT_FILE_NAME="fail2ban.prom"
+
+## File output location for node_exporter
+EXPORT_LOCATION='/var/lib/prometheus/node-exporter'
+
+## Modifying may break it!
+parseKeys = {
+    'Currently failed:': ('fail2ban_failed_current', 'Number of failed connections.'),
+    'Total failed:':('fail2ban_failed_total', 'Number of all time failed connections.'),
+    'Currently banned:':('fail2ban_banned_current', 'Number of currently banned IP addresses.'),
+    'Total banned:':('fail2ban_banned_total', 'Number of all time banned IP addresses.')
+}
+
 ## Commandline args
 parser = argparse.ArgumentParser(description="Exports fail2ban-client metrics.")
-parser.add_argument('-j', '--jail', help="Jail name to be exported", required=True)
-parser.add_argument('-f', '--file', help="File to be saved. path + name")
+parser.add_argument('-j', '--jail', help="Jail name to be exported (all jails if omitted)")
+parser.add_argument('-f', '--file', help="File to write metrics to.")
 args = parser.parse_args()
+
 ## Regex
-keys = '|'.join(parseKeys.keys())
-pattern = re.compile(r'('+ keys + ')\s*(\d*)')
+pattern = re.compile(r'('+ '|'.join(parseKeys.keys()) + ')\s*(\d*)')
+metrics = {}
+output = ''
+
+for k in parseKeys.keys():
+    metrics[k] = {}
+
 if args.jail:
-    registry = CollectorRegistry()
-    process = subprocess.Popen(['fail2ban-client', 'status', args.jail], stdout=subprocess.PIPE)
+    jails = [args.jail]
+else:
+    process = subprocess.Popen(['fail2ban-client', 'status'], stdout=subprocess.PIPE)
+    response = process.communicate()[0].decode('utf-8')
+    match = re.search('.+Jail list:\s+(.+)$', response)
+    jails = match.group(1).split(", ")
+
+for jail in jails:
+    process = subprocess.Popen(['fail2ban-client', 'status', jail], stdout=subprocess.PIPE)
     response = process.communicate()[0].decode('utf-8')
     match = re.findall(pattern, response)
     for m in match:
-        print(m[1])
-        counter = Counter(parseKeys[m[0]][0], parseKeys[m[0]][1], ['jail'] ,registry=registry)
-        counter.labels(args.jail).inc(float(m[1]))
+        metrics[m[0]].update( [(jail, float(m[1]))] )
 
-    write_to_textfile((args.file or (EXPORT_LOCATION + EXPORT_FILE_NAME)).replace('{{jail}}', args.jail), registry)
+registry = CollectorRegistry()
+for (metric, jails) in metrics.items():
+    gauge = Gauge(parseKeys[metric][0], parseKeys[metric][1], ['jail'], registry=registry)
+    for (jail,value) in jails.items():
+        gauge.labels(jail).set(float(value))
+
+with open((args.file or (EXPORT_LOCATION + '/' + EXPORT_FILE_NAME)), "wb") as file:
+  file.write(generate_latest(registry))
+  file.close()
